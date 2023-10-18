@@ -66,7 +66,8 @@
             // 変数
             TEXTURE2D(_BaseMap);
             SAMPLER(sampler_BaseMap);
-            sampler2D _BumpMap;
+            TEXTURE2D(_BumpMap);
+            SAMPLER(sampler_BumpMap);
             TEXTURE2D(_EmissionMask);
             
             // 定数バッファー
@@ -104,6 +105,31 @@
                 UNITY_VERTEX_OUTPUT_STEREO 
             };
 
+            half3 SampleNormal(float2 uv, float3 normal, float3 tangent, float3 binormal, TEXTURE2D_PARAM(bumpMap, sampler_bumpMap), half scale = half(1.0))
+            {
+            #ifdef _NORMALMAP_ON
+                half4 n = SAMPLE_TEXTURE2D(bumpMap, sampler_bumpMap, uv);
+                #if BUMP_SCALE_NOT_SUPPORTED
+                    half3 normalTS = UnpackNormal(n);
+                #else
+                    half3 normalTS = UnpackNormalScale(n, scale);
+                #endif
+            #else
+                half3 normalTS = half3(0.0h, 0.0h, 1.0h);
+            #endif
+                half3x3 tangentToWorld = half3x3(tangent, binormal, normal);
+                return TransformTangentToWorld(normalTS, tangentToWorld);
+            }
+
+            half3 SampleEmission(float2 uv, half3 emissionColor, TEXTURE2D_PARAM(emissionMap, sampler_emissionMap))
+            {
+            #ifndef _EMISSION_ON
+                return 0;
+            #else
+                return SAMPLE_TEXTURE2D(emissionMap, sampler_emissionMap, uv).rgb * emissionColor;
+            #endif
+            }
+            
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
@@ -150,11 +176,11 @@
                     _FinalColor.a = (_BaseTex.a - _Cutoff) / max(fwidth(_BaseTex.a), 0.0001) + 0.5;
                 #endif
                 
-                #ifdef _NORMALMAP_ON
-                    half3 _Normal = Map_Normal(_BumpMap, 1, IN.texcoord.xy, IN.normalWS, IN.tangentWS, IN.bitangentWS);
-                #else
-                    half3 _Normal = IN.normalWS;
-                #endif
+            #ifdef _NORMALMAP_ON
+                half3 _Normal = SampleNormal(IN.texcoord, IN.normalWS, IN.tangentWS, IN.bitangentWS, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap));
+            #else
+                half3 _Normal = IN.normalWS;
+            #endif
                 half3 _LightColor = SAMPLE_GI(IN.lightmapUV, IN.vertexSH, _Normal);
                 
                 #ifndef LIGHTMAP_ON
@@ -165,10 +191,9 @@
                 
                 _FinalColor.rgb = _FinalColor.rgb * _LightColor;
 
-                #ifdef _EMISSION_ON
-                const half _Emission = SAMPLE_TEXTURE2D(_EmissionMask, sampler_BaseMap, IN.texcoord).r;
-                _FinalColor += _Emission * _EmissionColor;
-                #endif
+            #ifdef _EMISSION_ON
+                _FinalColor.rgb += SampleEmission(IN.texcoord, _EmissionColor, TEXTURE2D_ARGS(_EmissionMask, sampler_BaseMap));
+            #endif
                 
                 _FinalColor.rgb = MixFog(_FinalColor.rgb, IN.FogFactor);
                 

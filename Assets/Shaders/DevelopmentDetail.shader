@@ -37,7 +37,7 @@
 
         Pass
         {
-            Name "UVScroll"
+            Name "CustomDetail"
             Tags
             {
                 "LightMode" = "UniversalForward"

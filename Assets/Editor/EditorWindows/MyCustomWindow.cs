@@ -7,8 +7,16 @@ using UnityEditor;
 public class SceneInfoData
 {
     [SerializeField] private string assetPath = default;
+    [SerializeField] private string AAAAAAAAA = default;
+    [SerializeField] private string BBBBBBBBB = default;
     public SceneInfoData() { }
-    public SceneInfoData(string assetPath) { this.assetPath = assetPath; }
+
+    public SceneInfoData(string assetPath)
+    {
+        this.assetPath = assetPath;
+        this.AAAAAAAAA = "AAAAAAAAA";
+        this.BBBBBBBBB = "BBBBBBBBB";
+    }
 }
 
 public class MyCustomWindow : EditorWindow
@@ -19,7 +27,7 @@ public class MyCustomWindow : EditorWindow
         GetWindow<MyCustomWindow>("My Custom Window");
     }
 
-    [SerializeField] private List<SceneInfoData> sceneInfoList = new List<SceneInfoData>();
+    [CustomDisable, SerializeField] private List<SceneInfoData> sceneInfoList = new List<SceneInfoData>();
     SerializedObject targetObject;
     
     private void OnEnable()
@@ -27,17 +35,25 @@ public class MyCustomWindow : EditorWindow
         targetObject = new SerializedObject(this);
         sceneInfoList.Clear();
         sceneInfoList.Add(new SceneInfoData("111"));
+        sceneInfoList.Add(new SceneInfoData("222"));
         sceneInfoList.Add(new SceneInfoData("333"));
+        sceneInfoList.Add(new SceneInfoData("444"));
+        sceneInfoList.Add(new SceneInfoData("555"));
     }
 
     private void OnGUI()
     {
         if (targetObject != null)
         {
-            // Draw the inspector GUI for the target object
             targetObject.Update();
+            
+            // List
             SerializedProperty prop = targetObject.FindProperty("sceneInfoList");
+            
+            EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(prop, new GUIContent(prop.displayName));
+            EditorGUI.EndDisabledGroup();
+            
             targetObject.ApplyModifiedProperties();
         }
     }

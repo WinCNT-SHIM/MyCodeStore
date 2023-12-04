@@ -8,10 +8,15 @@
         _BaseMap("Base Map", 2D) = "white" {}
         [MainColor] _BaseColor("Base Color", Color) = (1,1,1,1)
         
-        [HideInInspector]_Surface("__surface", Float) = 0.0
-        [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("__SrcBlend", Float) = 1
-        [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("__DstBlend", Float) = 0
-        [HideInInspector] _AlphaToMask("__AlphaToMask", Float) = 0.0
+        [Header(Palette Swap)]
+        [Toggle] _PaletteSwap("Palette Swap On/Off", Float) = 0.0
+        [NoScaleOffset] _PaletteSwapMask ("Palette Swap Mask", 2D) = "black" { }
+        _PaletteSwapMask1Color ("Palette Swap Mask 1 Color", Color) = (0, 0, 0, 1)
+        _PaletteSwapMask2Color ("Palette Swap Mask 2 Color", Color) = (0, 0, 0, 1)
+        _PaletteSwapMask3Color ("Palette Swap Mask 3 Color", Color) = (0, 0, 0, 1)
+        [Enum(CustomShaderGUI.PaletteSwapMode)] _PaletteSwapMask1ColorMode ("Palette Swap Mask 1 Color Mode", Float) = 0
+        [Enum(CustomShaderGUI.PaletteSwapMode)] _PaletteSwapMask2ColorMode ("Palette Swap Mask 2 Color Mode", Float) = 0
+        [Enum(CustomShaderGUI.PaletteSwapMode)] _PaletteSwapMask3ColorMode ("Palette Swap Mask 3 Color Mode", Float) = 0
     }
     
     SubShader
@@ -29,11 +34,6 @@
             {
                 "LightMode" = "UniversalForward"
             }
-
-            Cull [_CullMode]
-            // https://forum.unity.com/threads/is-there-extra-performance-cost-for-blend-one-zero.1154021/
-            Blend [_SrcBlend][_DstBlend]
-            AlphaToMask [_AlphaToMask]
             
             HLSLPROGRAM
             #pragma vertex vert
@@ -43,14 +43,21 @@
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             
-            // 変数
             TEXTURE2D(_BaseMap);
             SAMPLER(sampler_BaseMap);
+            TEXTURE2D(_PaletteSwapMask);
+            SAMPLER(sampler_PaletteSwapMask);
             
-            // 定数バッファー
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
                 half4 _BaseColor;
+
+                half4 _PaletteSwapMask1Color;
+                half4 _PaletteSwapMask2Color;
+                half4 _PaletteSwapMask3Color;
+                float _PaletteSwapMask1ColorMode;
+                float _PaletteSwapMask2ColorMode;
+                float _PaletteSwapMask3ColorMode;
             CBUFFER_END
             
             struct Attributes
@@ -74,6 +81,32 @@
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO 
             };
+
+            float3 GetPaletteSwapColor(float3 baseColor, half3 maskColor, float mask, float paletteSwapMode)
+            {
+                // Gray Scale
+                const float3 color = 0.299 * baseColor.r + 0.587 * baseColor.g + 0.114 * baseColor.b;
+                
+                // Linear
+                float3 colorLinearMode = color + mask * maskColor;
+                // Multiply
+                float3 colorMultiplyMode = color * mask * maskColor;
+                // Screen
+                float3 colorScreenMode = colorLinearMode - colorMultiplyMode;
+                // Overlay
+                float3 s = step(0.5, color);
+                float3 colorOverlayMode = 2 * lerp(colorMultiplyMode, colorScreenMode, s) - s;
+
+                // The selected mode is multiplied by 1, while the others are multiplied by 0, resulting in only the color of the selected mode remaining.
+                const int mode = int(paletteSwapMode);
+                colorLinearMode   *= (mode & 1);
+                colorMultiplyMode *= (mode & 2) >> 1;
+                colorScreenMode   *= (mode & 4) >> 2;
+                colorOverlayMode  *= (mode & 8) >> 3;
+
+                // Adjust the range reflected by the mask.
+                return saturate(lerp(baseColor, (colorLinearMode + colorMultiplyMode + colorScreenMode + colorOverlayMode), mask));
+            }
             
             Varyings vert(Attributes IN)
             {
@@ -100,95 +133,21 @@
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
                 
                 half4 _FinalColor = half4(0.0, 0.0, 0.0, 1.0);
-                const half4 _BaseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.texcoord);
-                _FinalColor = _BaseTex * _BaseColor;
+                half4 _BaseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.texcoord);
+
+                // Palette Swap
+                half3 paletteSwapMask = SAMPLE_TEXTURE2D(_PaletteSwapMask, sampler_PaletteSwapMask, IN.texcoord).rgb;
+                _BaseTex.rgb = GetPaletteSwapColor(_BaseTex, _PaletteSwapMask1Color.rgb, paletteSwapMask.r, _PaletteSwapMask1ColorMode);
+                _BaseTex.rgb = GetPaletteSwapColor(_BaseTex, _PaletteSwapMask2Color.rgb, paletteSwapMask.g, _PaletteSwapMask2ColorMode);
+                _BaseTex.rgb = GetPaletteSwapColor(_BaseTex, _PaletteSwapMask3Color.rgb, paletteSwapMask.b, _PaletteSwapMask3ColorMode);
                 
-                _FinalColor.rgb = _FinalColor.rgb;
-                _FinalColor.rgb = MixFog(_FinalColor.rgb, IN.FogFactor);
+                _FinalColor = _BaseTex * _BaseColor;
                 
                 return _FinalColor;
             }
             ENDHLSL
         }
-
-        Pass
-        {
-            Name "META"
-            Tags
-            {
-                "LightMode" = "Meta"
-            }
-            Cull Off
-            
-            HLSLPROGRAM
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MetaInput.hlsl"
-
-            #pragma vertex vert_meta_CBToon
-            #pragma fragment frag_meta_CBToon
-            
-            #pragma shader_feature_local_fragment _EMISSION_ON
-            
-            // 変数
-            TEXTURE2D(_BaseMap);
-            SAMPLER(sampler_BaseMap);
-            TEXTURE2D(_EmissionMask);
-            
-            CBUFFER_START(UnityPerMaterial)
-                half _Cutoff;
-                float4 _BaseMap_ST;
-                half4 _BaseColor;
-                float4 _EmissionMask_ST;
-                half4 _EmissionColor;
-                float _IsScroll;
-                float _SpeedX;
-                float _SpeedY;
-            CBUFFER_END
-            
-            struct VertexInput_CBToon
-            {
-                float3 pos : POSITION;
-                float2 uv : TEXCOORD0;
-                float2 lightmapUV: TEXCOORD1;
-            };
-            
-            struct v2f_meta_CBToon
-            {
-                float4 pos : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            v2f_meta_CBToon vert_meta_CBToon (VertexInput_CBToon v)
-            {
-                v2f_meta_CBToon o;
-                if (unity_MetaVertexControl.x)
-                {
-                    v.pos.xy = v.lightmapUV * unity_LightmapST.xy + unity_LightmapST.zw;
-                    // Dummy for OpenGL
-                    v.pos.z = v.pos.z > 0 ? REAL_MIN : 0.0f;
-                }
-                o.pos = TransformWorldToHClip(v.pos);
-                o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
-                return o;
-            }
-            
-            float4 frag_meta_CBToon(v2f_meta_CBToon i): SV_Target
-            {
-                UnityMetaInput o = (UnityMetaInput)0;
-                
-                const half3 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
-                o.Albedo = color * _BaseColor.rgb;
-                
-                #ifdef _EMISSION_ON
-                    o.Emission = SAMPLE_TEXTURE2D(_EmissionMask, sampler_BaseMap, i.uv).r * _EmissionColor;
-                #else
-                    o.Emission = 0;
-                #endif
-                
-                return UnityMetaFragment(o);
-            }
-            ENDHLSL
-        }
     }
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
+    CustomEditor "CustomShaderGUI.PaletteSwapGUI"
 }

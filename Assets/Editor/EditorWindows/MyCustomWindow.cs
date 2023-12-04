@@ -8,14 +8,14 @@ using UnityEditor;
 public class SceneInfoData
 {
     [SerializeField] private string assetPath = default;
-    [SerializeField] private string AAAAAAAAA = default;
-    [SerializeField] private string BBBBBBBBB = default;
+    // [SerializeField] private string AAAAAAAAA = default;
+    // [SerializeField] private string BBBBBBBBB = default;
 
     public SceneInfoData(string assetPath)
     {
         this.assetPath = assetPath;
-        this.AAAAAAAAA = "AAAAAAAAA";
-        this.BBBBBBBBB = "BBBBBBBBB";
+        // this.AAAAAAAAA = "AAAAAAAAA";
+        // this.BBBBBBBBB = "BBBBBBBBB";
     }
 }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEditor;
@@ -21,6 +22,7 @@ public class SceneInfoData
 
 public class MyCustomWindow : EditorWindow
 {
+    private List<GameObject> _selectionGameObjects = new List<GameObject>();
     private readonly List<SerializedProperty> targetList = new List<SerializedProperty>();
     
     [MenuItem("Custom Tools/My Custom Window")]
@@ -66,6 +68,8 @@ public class MyCustomWindow : EditorWindow
 
     private void OnGUI()
     {
+        DrawSelectionVertexCounter();
+        
         if (targetObject != null)
         {
             targetObject.Update();
@@ -87,6 +91,56 @@ public class MyCustomWindow : EditorWindow
             targetObject.ApplyModifiedProperties();
         }
     }
+    
+    #region Selected GameObject Vertex-Count
+    private void DrawSelectionVertexCounter()
+    {
+        _selectionGameObjects = Selection.gameObjects.ToList();
+        EditorGUILayout.BeginVertical(GUI.skin.GetStyle("HelpBox"));
+        EditorGUILayout.LabelField("Selected GameObject Vertex-Count", EditorStyles.boldLabel);
+        EditorGUI.indentLevel++;
+        {
+            EditorGUILayout.IntField("Skin", CountMeshVertex(GetAllSkinnedMeshRenderers(_selectionGameObjects)));
+            EditorGUILayout.IntField("mesh", CountMeshVertex(GetAllMeshFilter(_selectionGameObjects)));
+        }
+        EditorGUI.indentLevel--;
+        EditorGUILayout.EndVertical();
+        
+        Repaint();
+    }
+    #endregion
+
+    #region Private Methods
+    private List<SkinnedMeshRenderer> GetAllSkinnedMeshRenderers(List<GameObject> rootGameObject)
+    {
+        var meshes = new List<SkinnedMeshRenderer>();
+        foreach (var gameObject in rootGameObject)
+            meshes.AddRange(gameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true));
+        return meshes.OrderByDescending(x => x.sharedMesh.vertexCount).ToList();
+    }
+    private List<MeshFilter> GetAllMeshFilter(List<GameObject> rootGameObject)
+    {
+        var meshes = new List<MeshFilter>();
+        foreach (var gameObject in rootGameObject)
+            meshes.AddRange(gameObject.GetComponentsInChildren<MeshFilter>(true));
+        return meshes.OrderByDescending(x => x.sharedMesh.vertexCount).ToList();
+    }
+
+    private static int CountMeshVertex(List<SkinnedMeshRenderer> list)
+    {
+        return list
+            .Where(i => i is not null)
+            .Where(i => i.gameObject.activeInHierarchy)
+            .Sum(i => i.sharedMesh.vertices.Length);
+    }
+    private static int CountMeshVertex(List<MeshFilter> list)
+    {
+        return list
+            .Where(i => i is not null)
+            .Where(i => i.gameObject.activeInHierarchy)
+            .Sum(i => i.sharedMesh.vertices.Length);
+    }
+    #endregion
     
     private void GetTargetProperty(SerializedObject serializedObject, SerializedProperty property)
     {

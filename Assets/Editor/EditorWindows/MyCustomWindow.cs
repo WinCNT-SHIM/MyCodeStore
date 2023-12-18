@@ -24,6 +24,7 @@ public class MyCustomWindow : EditorWindow
 {
     private List<GameObject> _selectionGameObjects = new List<GameObject>();
     private readonly List<SerializedProperty> targetList = new List<SerializedProperty>();
+    private List<Action> targetMethodList = new List<Action>();
     
     [MenuItem("Custom Tools/My Custom Window")]
     public static void ShowWindow()
@@ -44,6 +45,7 @@ public class MyCustomWindow : EditorWindow
         var iterator = targetObject.GetIterator();
         while (iterator.NextVisible(true))
         {
+            GetTargetMethod(targetObject, iterator);
             GetTargetProperty(targetObject, iterator);
         }
         targetObject.ApplyModifiedProperties();
@@ -68,11 +70,16 @@ public class MyCustomWindow : EditorWindow
 
     private void OnGUI()
     {
-        DrawSelectionVertexCounter();
+        // DrawSelectionVertexCounter();
         
         if (targetObject != null)
         {
             targetObject.Update();
+
+            foreach (var method in targetMethodList)
+            {
+                method.Invoke();
+            }
             
             // // List
             // SerializedProperty prop = targetObject.FindProperty("sceneInfoList");
@@ -159,6 +166,37 @@ public class MyCustomWindow : EditorWindow
                         targetList.Add(property.Copy());
                 }
             }
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e);
+            throw;
+        }
+    }
+    
+    private void GetTargetMethod(SerializedObject serializedObject, SerializedProperty property)
+    {
+        try
+        {
+            var type = serializedObject.targetObject.GetType();
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (methods.Length != 0)
+            {
+                foreach (var method in methods)
+                {
+                    var attributes = method.GetCustomAttributes(true);
+                    foreach (var attr in attributes)
+                    {
+                        if (attr.GetType() == typeof(OnInspectorGUIAttribute))
+                        {
+                            Action action = (Action) Delegate.CreateDelegate(typeof(Action), serializedObject.targetObject, method);
+                            targetMethodList.Add(action);
+                        }
+                    }
+                }
+            }
+            // duplicates remove
+            targetMethodList = targetMethodList.Distinct().ToList();
         }
         catch (Exception e)
         {

@@ -93,6 +93,7 @@ public class MyCustomWindow : EditorWindow
     }
     
     #region Selected GameObject Vertex-Count
+    [OnInspectorGUI]
     private void DrawSelectionVertexCounter()
     {
         _selectionGameObjects = Selection.gameObjects.ToList();

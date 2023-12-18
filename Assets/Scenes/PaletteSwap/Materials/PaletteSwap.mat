@@ -25,7 +25,8 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _PALETTESWAP_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -47,13 +48,13 @@ Material:
     m_Ints: []
     m_Floats:
     - _CullMode: 2
-    - _PaletteSwap: 0
-    - _PaletteSwapMask1ColorMode: 8
+    - _PaletteSwap: 1
+    - _PaletteSwapMask1ColorMode: 2
     - _PaletteSwapMask2ColorMode: 1
-    - _PaletteSwapMask3ColorMode: 2
+    - _PaletteSwapMask3ColorMode: 8
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _PaletteSwapMask1Color: {r: 0.0893805, g: 1, b: 0, a: 1}
-    - _PaletteSwapMask2Color: {r: 0.5596056, g: 0, b: 1, a: 1}
-    - _PaletteSwapMask3Color: {r: 1, g: 0, b: 0, a: 1}
+    - _PaletteSwapMask1Color: {r: 1, g: 0, b: 0, a: 1}
+    - _PaletteSwapMask2Color: {r: 0.23584908, g: 0, b: 0.05229341, a: 1}
+    - _PaletteSwapMask3Color: {r: 0, g: 0, b: 1, a: 1}
   m_BuildTextureStacks: []

@@ -116,27 +116,27 @@ public class MyCustomWindow : EditorWindow
         var meshes = new List<SkinnedMeshRenderer>();
         foreach (var gameObject in rootGameObject)
             meshes.AddRange(gameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true));
-        return meshes.OrderByDescending(x => x.sharedMesh.vertexCount).ToList();
+        return meshes.OrderByDescending(x => x.sharedMesh != null ? x.sharedMesh.vertexCount : -1).ToList();
     }
     private List<MeshFilter> GetAllMeshFilter(List<GameObject> rootGameObject)
     {
         var meshes = new List<MeshFilter>();
         foreach (var gameObject in rootGameObject)
             meshes.AddRange(gameObject.GetComponentsInChildren<MeshFilter>(true));
-        return meshes.OrderByDescending(x => x.sharedMesh.vertexCount).ToList();
+        return meshes.OrderByDescending(x => x.sharedMesh != null ? x.sharedMesh.vertexCount : -1).ToList();
     }
 
     private static int CountMeshVertex(List<SkinnedMeshRenderer> list)
     {
         return list
-            .Where(i => i is not null)
+            .Where(i => i is not null && i.sharedMesh is not null)
             .Where(i => i.gameObject.activeInHierarchy)
             .Sum(i => i.sharedMesh.vertices.Length);
     }
     private static int CountMeshVertex(List<MeshFilter> list)
     {
         return list
-            .Where(i => i is not null)
+            .Where(i => i is not null && i.sharedMesh is not null)
             .Where(i => i.gameObject.activeInHierarchy)
             .Sum(i => i.sharedMesh.vertices.Length);
     }

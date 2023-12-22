@@ -100,7 +100,7 @@ public class MyCustomWindow : EditorWindow
     }
     
     #region Selected GameObject Vertex-Count
-    [OnInspectorGUI]
+    [OnInspectorGUICustom]
     private void DrawSelectionVertexCounter()
     {
         _selectionGameObjects = Selection.gameObjects.ToList();
@@ -187,7 +187,7 @@ public class MyCustomWindow : EditorWindow
                     var attributes = method.GetCustomAttributes(true);
                     foreach (var attr in attributes)
                     {
-                        if (attr.GetType() == typeof(OnInspectorGUIAttribute))
+                        if (attr.GetType() == typeof(OnInspectorGUICustomAttribute))
                         {
                             Action action = (Action) Delegate.CreateDelegate(typeof(Action), serializedObject.targetObject, method);
                             targetMethodList.Add(action);

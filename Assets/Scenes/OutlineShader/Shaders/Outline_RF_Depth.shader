@@ -16,6 +16,10 @@
         [HDR]_EmissionColor("Emission Color", Color) = (0,0,0)
         _EmissionMask("Emission Mask", 2D) = "white" {}
         
+        [Header(Outline)][Space(10)]
+        _OutlineWidth("Outline Width", float) = 0.0
+        [HDR]_OutlineColor("Emission Color", Color) = (0,0,0)
+        
         [HideInInspector]_Surface("__surface", Float) = 0.0
         [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("__SrcBlend", Float) = 1
         [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("__DstBlend", Float) = 0
@@ -52,7 +56,7 @@
             // Material Keywords
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _NORMALMAP_ON
-            #pragma shader_feature LIGHTMAP_ON
+            #pragma multi_compile _ LIGHTMAP_ON
             #pragma shader_feature_local_fragment _EMISSION_ON
             
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -72,6 +76,9 @@
                 half4 _BaseColor;
                 float4 _EmissionMask_ST;
                 half4 _EmissionColor;
+                // Outline
+                float _OutlineWidth;
+                half4 _OutlineColor;
             CBUFFER_END
             
             struct Attributes
@@ -146,10 +153,7 @@
                 
                 float2 uv = TRANSFORM_TEX(IN.texcoord, _BaseMap);
                 OUT.texcoord = uv;
-
-                // Fog
-                OUT.FogFactor = ComputeFogFactor(OUT.PositionHCS.z);
-
+                
                 return OUT;
             }
 
@@ -159,46 +163,50 @@
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
                 
                 half4 _FinalColor = half4(0.0, 0.0, 0.0, 1.0);
+                
                 const half4 _BaseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.texcoord);
-                _FinalColor = _BaseTex * _BaseColor;
-                #ifdef _ALPHATEST_ON
-                    _FinalColor.a = (_BaseTex.a - _Cutoff) / max(fwidth(_BaseTex.a), 0.0001) + 0.5;
-                #endif
-
-                // Toon Dark
-                const float _ToonDarkPow = 0.75;
-                half4 _ToonDarkColor = _FinalColor * _ToonDarkPow;
+                half3 _ToonLightColor = _BaseTex;
+                // #ifdef _ALPHATEST_ON
+                    _FinalColor.a = ((_BaseTex * _BaseColor).a - _Cutoff) / max(fwidth((_BaseTex * _BaseColor).a), 0.0001) + 0.5;
+                // #endif
                 
             #ifdef _NORMALMAP_ON
                 half3 _Normal = SampleNormal(IN.texcoord, IN.normalWS, IN.tangentWS, IN.bitangentWS, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap));
             #else
                 half3 _Normal = IN.normalWS;
             #endif
-                half3 _LightColor = SAMPLE_GI(IN.lightmapUV, IN.vertexSH, _Normal);
 
+                half3 bakedGI = SAMPLE_GI(IN.lightmapUV, IN.vertexSH, _Normal);
+                half3 envColor = bakedGI * _BaseColor;
+                envColor *= 1.8f;
+                
                 Light mainLight = GetMainLight();
+                half3 attenuatedLightColor = mainLight.color * (mainLight.distanceAttenuation * mainLight.shadowAttenuation);
+
+                _ToonLightColor *= _BaseColor;
+                _ToonLightColor *= attenuatedLightColor; 
+                
+                // Toon Dark
+                const float _ToonDarkPow = 0.75;
+                half3 _ToonDarkColor = _ToonLightColor * _ToonDarkPow;
+                
+                half3 envLightColor = envColor.rgb;
+                float envLightIntensity = 0.299*envLightColor.r + 0.587*envLightColor.g + 0.114*envLightColor.b <1 ? (0.299*envLightColor.r + 0.587*envLightColor.g + 0.114*envLightColor.b) : 1;
                 
                 // Half NdotL
                 const float _HalfLambert = 0.5 * dot(_Normal, mainLight.direction) + 0.5;
-                
-                // Base Color - Dark Color Edge
+                // Base Color <-> Dark Color Edge
                 const float  _ToonFeatherBaseTo1st = 0.001;
                 // const float _FinalShadowMask = saturate((_ShadowPower1 - _HalfLambert) / _ToonFeatherBaseTo1st);
                 const float _FinalShadowMask = saturate((0.5 - _HalfLambert) / _ToonFeatherBaseTo1st);
-                _FinalColor = lerp(_FinalColor, _ToonDarkColor, _FinalShadowMask);
-                
-                #ifndef LIGHTMAP_ON
-                float ld = dot(_MainLightPosition.xyz, _Normal);
-                _LightColor.rgb += mainLight.color * mainLight.distanceAttenuation * max(0, ld);
-                #endif
-                
-                _FinalColor.rgb = _FinalColor.rgb * _LightColor;
 
+                float _GI_Intensity = 0.0;
+                _FinalColor.rgb = lerp(_ToonLightColor, _ToonDarkColor, _FinalShadowMask);
+                _FinalColor.rgb += (envLightColor * envLightIntensity * _GI_Intensity * smoothstep(1,0,envLightIntensity/2));
+                
             #ifdef _EMISSION_ON
                 _FinalColor.rgb += SampleEmission(IN.texcoord, _EmissionColor, TEXTURE2D_ARGS(_EmissionMask, sampler_BaseMap));
             #endif
-                
-                _FinalColor.rgb = MixFog(_FinalColor.rgb, IN.FogFactor);
                 
                 return _FinalColor;
             }

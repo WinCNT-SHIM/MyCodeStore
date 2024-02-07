@@ -20,14 +20,14 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Body
-  m_Shader: {fileID: 4800000, guid: d8fea2ae3bb53cf44ba87a69df8d1ce7, type: 3}
+  m_Name: Head
+  m_Shader: {fileID: 4800000, guid: 0409951e4c1b95f4182e937f9c1d29fd, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _NORMALMAP_ON
-  m_InvalidKeywords:
   - _OUTLINE_NML
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0

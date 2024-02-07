@@ -20,14 +20,14 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Body
-  m_Shader: {fileID: 4800000, guid: d8fea2ae3bb53cf44ba87a69df8d1ce7, type: 3}
+  m_Name: Primitive
+  m_Shader: {fileID: 4800000, guid: 0409951e4c1b95f4182e937f9c1d29fd, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _NORMALMAP_ON
-  m_InvalidKeywords:
-  - _OUTLINE_NML
+  - _OUTLINE_POS
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -39,11 +39,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 0f83c88893812674fb27a67cc3d624d9, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 54a57c962fa43e14e9c13ad64e22b5ee, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -120,7 +120,7 @@ Material:
     - _GlossyReflections: 0
     - _IsScroll: 0
     - _Metallic: 0
-    - _OUTLINE: 0
+    - _OUTLINE: 1
     - _OcclusionStrength: 1
     - _OutlineWidth: 10
     - _OutlineZTest: 4

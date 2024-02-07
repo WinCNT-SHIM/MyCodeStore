@@ -268,9 +268,6 @@
             {
                 float4 pos : SV_POSITION;
                 float2 tex_coord: TEXCOORD0;
-                // float3 normal: TEXCOORD6; //world
-                // float3 tangent: TEXCOORD7; //world
-                // float3 bi_normal: TEXCOORD8; //world
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };

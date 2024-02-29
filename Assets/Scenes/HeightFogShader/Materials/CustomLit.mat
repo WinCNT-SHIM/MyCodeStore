@@ -54,7 +54,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _HeightFogNoise:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: c0be678a8db2f5248af268490e27264e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -111,9 +111,9 @@ Material:
     - _GlossyReflections: 0
     - _HEIGHT_FOG: 1
     - _HeightFogDensity: 1
-    - _HeightFogNoisePower: 1
-    - _HeightFogNoiseSpeedX: 0
-    - _HeightFogNoiseSpeedY: 0
+    - _HeightFogNoisePower: 0.75
+    - _HeightFogNoiseSpeedX: 0.1
+    - _HeightFogNoiseSpeedY: 0.1
     - _MaxFogHeight: 1.2
     - _Metallic: 0
     - _OUTLINE: 0
@@ -136,7 +136,7 @@ Material:
     - _BaseColor: {r: 1, g: 0.9764151, b: 0.9764151, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HeightFogColor: {r: 0.7075472, g: 0.5331909, b: 0, a: 1}
+    - _HeightFogColor: {r: 0.003025995, g: 0.011658749, b: 0.6415094, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []

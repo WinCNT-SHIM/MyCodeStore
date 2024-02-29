@@ -11,9 +11,9 @@ Material:
   m_Shader: {fileID: 4800000, guid: 6aebd1623b9a9704eb4789bed0488c00, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
+  m_ValidKeywords: []
+  m_InvalidKeywords:
   - _OUTLINE_NML
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -49,6 +49,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _EmissionMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightFogNoise:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -104,6 +108,12 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _HEIGHT_FOG: 0
+    - _HeightFogDensity: 1
+    - _HeightFogNoisePower: 1
+    - _HeightFogNoiseSpeedX: 0
+    - _HeightFogNoiseSpeedY: 0
+    - _MaxFogHeight: 1
     - _Metallic: 0
     - _OUTLINE: 0
     - _OcclusionStrength: 1
@@ -125,6 +135,7 @@ Material:
     - _BaseColor: {r: 0.5943396, g: 0.5943396, b: 0.5943396, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _HeightFogColor: {r: 1, g: 0, b: 0, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []

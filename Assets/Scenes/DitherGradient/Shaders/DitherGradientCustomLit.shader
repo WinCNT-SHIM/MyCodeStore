@@ -5,6 +5,8 @@ Shader "Dither Gradient/Dither Gradient Custom Lit"
         _Cutoff  ("Cutoff", Range(0.0, 1.0)) = 0.5
         [Enum(UnityEngine.Rendering.CullMode)] _CullMode ("Cull Mode", Float) = 2 // Back
         
+        _BlueNoiseTexture("Blue Noise", 2D) = "black" {}
+        
         [Header(Texture)][Space(10)]
         _BaseMap("Base Map", 2D) = "white" {}
         [MainColor] _BaseColor("Base Color", Color) = (1,1,1,1)
@@ -57,11 +59,12 @@ Shader "Dither Gradient/Dither Gradient Custom Lit"
             
             // -------------------------------------
             // Material Keywords
-            #pragma shader_feature_local_fragment _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _DITHER_TRANSPARENT_ON
             #pragma shader_feature_local_fragment _NORMALMAP_ON
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma shader_feature_local_fragment _EMISSION_ON
             #pragma multi_compile __ _HEIGHT_FOG
+            // #pragma enable_d3d11_debug_symbols
             
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -72,6 +75,7 @@ Shader "Dither Gradient/Dither Gradient Custom Lit"
             TEXTURE2D(_BumpMap);
             SAMPLER(sampler_BumpMap);
             TEXTURE2D(_EmissionMask);
+            TEXTURE2D(_BlueNoiseTexture);
             
             // 定数バッファー
             CBUFFER_START(UnityPerMaterial)
@@ -174,10 +178,17 @@ Shader "Dither Gradient/Dither Gradient Custom Lit"
                 half4 _FinalColor = half4(0.0, 0.0, 0.0, 1.0);
                 
                 const half4 _BaseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.texcoord);
+
+                // Blue Noise Dither
+                float alpha = _BaseTex.a * _BaseColor.a;
+                half4 blueNoise = SAMPLE_TEXTURE2D(_BlueNoiseTexture, sampler_BaseMap, IN.texcoord * 8.0);
+
+                float dithered = blueNoise.a;
+                dithered = alpha - dithered;
+                // dithered = alpha > 0.05 ? dithered : -1.0;
+                clip(dithered);
+                
                 half3 _ToonLightColor = _BaseTex.rgb;
-                // #ifdef _ALPHATEST_ON
-                //     _FinalColor.a = ((_BaseTex * _BaseColor).a - _Cutoff) / max(fwidth((_BaseTex * _BaseColor).a), 0.0001) + 0.5;
-                // #endif
                 
             #ifdef _NORMALMAP_ON
                 half3 _Normal = SampleNormal(IN.texcoord, IN.normalWS, IN.tangentWS, IN.bitangentWS, TEXTURE2D_ARGS(_BumpMap, sampler_BumpMap));

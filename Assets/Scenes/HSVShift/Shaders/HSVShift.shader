@@ -6,7 +6,7 @@ Shader "SSS/HSVShift"
         [KeywordEnum(Linear, Multiply, Screen, Overlay)] _Mode("Sample Blend Mode", Float) = 0.0
         
         [MainTexture] _BaseMap ("Texture", 2D) = "white" {}
-        [HDR][MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
+        [MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
         _Temp("Color Picker", Color) = (1, 1, 1, 1)
         
         [Header(HSB)]
@@ -133,6 +133,108 @@ Shader "SSS/HSVShift"
                     finalColor.rgb = saturate(finalColor.rgb + Gamma22ToLinear(hsbShift.z));
                 else
                     finalColor.rgb = saturate(finalColor.rgb * Gamma22ToLinear(hsbShift.z + 1.0));
+
+                finalColor.rgb = saturate(finalColor.rgb);
+                
+            #ifdef UNITY_COLORSPACE_GAMMA
+                finalColor = LinearToGamma22(finalColor);
+            #endif
+                
+                // Mask
+                finalColor.rgb = lerp(baseColor.rgb, finalColor.rgb, mask);
+                return finalColor;
+            }
+            
+            float3 RGBtoHSL(float3 color)
+            {
+                float3 c = color;
+                
+                // RGB -> HSV(HSB)
+                const float brightness = saturate(max(c.r, max(c.g, c.b))); // Brightness == Value
+                const float small = saturate(min(c.r, min(c.g, c.b)));
+                const float chrome = saturate(brightness - small);
+
+                const float lightness = (brightness + small) * 0.5;
+                
+                float hue = 0;
+                float chromeReverse = chrome > 0.0 ? 1.0 / chrome : 0.0;
+
+                float isRedBrightest   = saturate(step(brightness, c.r) * step(c.r, brightness));
+                float isGreenBrightest = saturate(step(brightness, c.g) * step(c.g, brightness));
+                isGreenBrightest = isRedBrightest > 0.5f ? 0.0f : isGreenBrightest;
+                float isBlueBrightest  = isRedBrightest + isGreenBrightest > 0.5f ? 0.0f : 1.0f;
+
+                hue += (isRedBrightest   * ((c.g - c.b) * chromeReverse + 6) % 6);
+                hue += (isGreenBrightest * ((c.b - c.r) * chromeReverse + 2));
+                hue += (isBlueBrightest  * ((c.r - c.g) * chromeReverse + 4));
+                hue *= 60;
+                
+                float saturation = 0.0;
+                // saturation = brightness > 0.0 ? chrome / brightness : 0.0;
+                saturation = lightness > 0.0 && lightness < 1.0 ? chrome / (1.0 - abs(2.0 * lightness - 1.0)) : 0.0;
+                
+                return float3(hue, saturation, lightness);
+            }
+            
+            float3 HSLtoRGB(float3 hsl)
+            {
+                float hue = hsl.x;
+                float saturation = hsl.y;
+                float lightness = hsl.z;
+                
+                // HSV(HSB) -> RGB
+                float4 color = float4(0, 0, 0, 1);
+
+                const float alpha = saturation * min(lightness, 1.0 - lightness);
+
+                float kRed = (hue / 30.0) % 12;
+                float kGreen = (hue / 30.0 + 8) % 12;
+                float kBlue = (hue / 30.0 + 4) % 12;
+
+                color.r = lightness - alpha * max(-1, min(min(kRed   - 3, 9 - kRed),   1));
+                color.g = lightness - alpha * max(-1, min(min(kGreen - 3, 9 - kGreen), 1));
+                color.b = lightness - alpha * max(-1, min(min(kBlue  - 3, 9 - kBlue),  1));
+                color.rgb = saturate(color.rgb);
+                
+                return color.rgb;
+            }
+            
+            float4 ApplyHSLShift(float4 baseColor, float3 hslShift, float mask)
+            {
+                float3 c = baseColor.rgb;
+                
+            #if UNITY_COLORSPACE_GAMMA
+                c = Gamma22ToLinear(baseColor);
+            #endif
+
+                float3 hsl = RGBtoHSL(c);
+                // return float4(hsl/360, 1.0);
+                float hue = hsl.x;
+                float saturation = hsl.y;
+                float lightness = hsl.z;
+
+                // Hue Shift
+                hue += hslShift.x * 360.0;
+                if (hue < 0.0)
+                    hue += 360.0;
+                else if (hue > 360.0)
+                    hue -= 360.0;
+                
+                // Saturation Shift
+                if (hslShift.y > 0.0)
+                    saturation = (saturation + (hslShift.y));
+                else
+                    saturation = (saturation * (hslShift.y + 1.0));
+
+                // HSV -> RGB
+                float4 finalColor = float4(0, 0, 0, baseColor.a);
+                finalColor.rgb = HSLtoRGB(float3(hue, saturation, lightness));
+
+                // Lightness Shift
+                if (hslShift.z > 0.0)
+                    finalColor.rgb = saturate(finalColor.rgb + Gamma22ToLinear(hslShift.z));
+                else
+                    finalColor.rgb = saturate(finalColor.rgb * Gamma22ToLinear(hslShift.z + 1.0));
 
                 finalColor.rgb = saturate(finalColor.rgb);
                 

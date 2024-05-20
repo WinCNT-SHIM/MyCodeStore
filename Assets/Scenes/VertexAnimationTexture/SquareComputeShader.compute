@@ -1,0 +1,15 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// 버퍼 선언
+StructuredBuffer<uint> inputBuffer;
+RWStructuredBuffer<uint> outputBuffer;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+    // 입력 버퍼에서 값을 읽고 제곱하여 출력 버퍼에 씁니다.
+    uint value = inputBuffer[id.x];
+    outputBuffer[id.x] = value * value;
+}

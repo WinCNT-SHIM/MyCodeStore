@@ -21,6 +21,15 @@ float3 MixUniformHeightFog(
     float noiseUVScrollY,
     float noisePower)
 {
+	float distance1 = length(objectPos - cameraPos);
+	color = color * pow((heightFogDensity), distance1);
+	float lost = 1.0 - pow((heightFogDensity), distance1);
+    
+	color = color * (1.0 - lost);
+	color += heightFogcolor * lost;
+    
+	return color;
+    
     noiseUV.x += frac(_Time.y * noiseUVScrollX);
     noiseUV.y += frac(_Time.y * noiseUVScrollY);
     const float noise = tex2D(noiseTex, noiseUV).r * noisePower;
